@@ -1,0 +1,39 @@
+- name: upgrade all packages
+  yum:
+    name: '*'    
+    state: latest
+
+- name: Install redhat-lsb-core
+  package:
+    name: redhat-lsb-core
+    state: latest
+
+- name: Install tools
+  package:
+    name: net-tools
+    state: latest
+
+- name: Install bind-utils
+  package:
+    name: bind-utils
+    state: latest
+
+- name: password authentication no>yes 
+  ansible.builtin.shell: sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+- name: sshd reload
+  service:
+    name: sshd
+    state: restarted
+    
+- name: Disable SELinux
+  selinux:
+    state: disabled
+
+- name: Insert/Update 
+  blockinfile:
+    path: /etc/hosts
+    block: |
+      159.65.179.10 server.dreampla.net server
+      159.65.188.104 client.example.com client
+

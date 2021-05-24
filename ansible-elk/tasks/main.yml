@@ -1,0 +1,41 @@
+- hosts: all 
+  tasks:
+  
+  - name: Disable SELinux
+    selinux:
+      state: disabled
+
+  - name: Insert/Update 
+    blockinfile:
+      path: /etc/hosts
+      block: |
+        159.65.35.191 server.dreampla.net server
+        159.89.177.135 client.example.com client
+  
+  - name: Updates
+    include: updates.yml
+    when: inventory_hostname in groups['server']    
+
+  - name: Install Java 8
+    include: java.yml
+    when: inventory_hostname in groups['server']
+
+  - name: Install Elasticsearch
+    include: elasticsearch.yml
+    when: inventory_hostname in groups['server']
+
+  - name: Install Kibana
+    include: kibana.yml
+    when: inventory_hostname in groups['server']
+
+  - name: Install Nginx
+    include: nginx.yml
+    when: inventory_hostname in groups['server']
+
+  - name: Install Logstash
+    include: logstash.yml
+    when: inventory_hostname in groups['server']
+
+  - name: Install Filebeat
+    include: filebeat.yml
+    when: inventory_hostname in groups['client']

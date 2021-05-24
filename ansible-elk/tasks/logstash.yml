@@ -1,0 +1,57 @@
+- name: Install logstash
+  yum: 
+    name: logstash
+    state: installed
+
+# - name: This command will change the working directory to /root/
+#   ansible.builtin.shell:
+#     cmd: openssl req -subj '/CN=server.dreampla.net/' -x509 -days 3650 -nodes -batch -newkey rsa:2048 -keyout /etc/pki/tls/private/logstash.key -out /etc/pki/tls/certs/logstash.crt
+#     # when: $(! -s /etc/pki/tls/certs/logstash.crt)
+
+- name: create file in a remote server
+  file:
+    path: /etc/logstash/conf.d/01-logstash-simple.conf
+    state: touch
+
+- name: Insert/Update 
+  blockinfile:
+    path: /etc/logstash/conf.d/01-logstash-simple.conf
+    block: |
+      input {
+        beats {
+          port => 5044
+          ssl => true
+          ssl_certificate => "/etc/pki/tls/certs/logstash.crt"
+          ssl_key => "/etc/pki/tls/private/logstash.key"
+        }
+      }
+
+      filter {
+          if [type] == "syslog" {
+              grok {
+                  match => {
+                      "message" => "%{SYSLOGTIMESTAMP:syslog_timestamp} %{SYSLOGHOST:syslog_hostname} %{DATA:syslog_program}(?:\[%{POSINT:syslog_pid}\])?: %{GREEDYDATA:syslog_message}"
+                  }
+                  add_field => [ "received_at", "%{@timestamp}" ]
+                  add_field => [ "received_from", "%{host}" ]
+              }
+              syslog_pri { }
+              date {
+                  match => [ "syslog_timestamp", "MMM  d HH:mm:ss", "MMM dd HH:mm:ss" ]
+              }
+          }
+      }
+
+      output {
+          elasticsearch {
+              hosts => "localhost:9200"
+              index => "%{[@metadata][beat]}-%{+YYYY.MM.dd}"
+          }
+      }
+
+
+- name: Start logstash
+  service:
+    name: logstash
+    state: started
+    enabled: yes

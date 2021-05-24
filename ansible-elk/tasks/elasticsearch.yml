@@ -1,0 +1,39 @@
+- name: Import a key from a url
+  ansible.builtin.rpm_key:
+    state: present
+    key: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+- name: create file in a remote server
+  file:
+    path: /etc/yum.repos.d/elk.repo
+    state: touch
+
+- name: Insert/Update 
+  blockinfile:
+    path: /etc/yum.repos.d/elk.repo
+    block: |
+      [ELK-6.x]
+      name=ELK repository for 6.x packages
+      baseurl=https://artifacts.elastic.co/packages/6.x/yum
+      gpgcheck=1
+      gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+      enabled=1
+      autorefresh=1
+      type=rpm-md
+
+- name: Install Elasticsearch
+  yum: 
+    name: elasticsearch 
+    state: installed
+
+- name: Restart service elasticsearch
+  ansible.builtin.systemd:
+    state: restarted
+    daemon_reload: yes
+    name: elasticsearch
+
+- name: Start elasticsearch
+  service:
+    name: elasticsearch
+    state: started
+    enabled: yes
